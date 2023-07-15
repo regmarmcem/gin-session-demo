@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,6 +17,9 @@ var secrets = gin.H{
 func main() {
 
 	r := gin.Default()
+	store := cookie.NewStore([]byte("secret"))
+	store.Options(sessions.Options{Path: "/", Domain: "localhost", MaxAge: 3600, Secure: false, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	r.Use(sessions.Sessions("mysession", store))
 
 	authorized := r.Group("/admin", gin.BasicAuth(gin.Accounts{
 		"foo":    "bar",
@@ -25,17 +30,19 @@ func main() {
 
 	authorized.GET("/login", func(c *gin.Context) {
 		user := c.MustGet(gin.AuthUserKey).(string)
-		c.SetSameSite(http.SameSiteLaxMode)
-		c.SetCookie("user", user, 3600, "/", "localhost", false, true)
+		session := sessions.Default(c)
+		session.Set("user", user)
+		session.Save()
 	})
 
 	r.GET("/admin/secrets", func(c *gin.Context) {
-		user, err := c.Cookie("user")
-		if err != nil {
+		session := sessions.Default(c)
+		user := session.Get("user")
+		if user == nil {
 			c.Redirect(http.StatusSeeOther, "/admin/login")
 		}
 
-		if secret, ok := secrets[user]; ok {
+		if secret, ok := secrets[user.(string)]; ok {
 			c.JSON(http.StatusOK, gin.H{"user": user, "secret": secret})
 		} else {
 			c.JSON(http.StatusOK, gin.H{"user": user, "secret": secret})
