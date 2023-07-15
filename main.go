@@ -2,10 +2,12 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 var secrets = gin.H{
@@ -15,9 +17,19 @@ var secrets = gin.H{
 }
 
 func main() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		panic("Error loading .env file")
+	}
+	redisHost := os.Getenv("REDIS_HOST")
+	redisPort := os.Getenv("REDIS_PORT")
 
 	r := gin.Default()
-	store := cookie.NewStore([]byte("secret"))
+	store, err := redis.NewStore(10, "tcp", redisHost+":"+redisPort, "", []byte("secret"))
+	if err != nil {
+		panic("failed to create redis store")
+	}
+
 	store.Options(sessions.Options{Path: "/", Domain: "localhost", MaxAge: 3600, Secure: false, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	r.Use(sessions.Sessions("mysession", store))
 
@@ -42,10 +54,14 @@ func main() {
 			c.Redirect(http.StatusSeeOther, "/admin/login")
 		}
 
-		if secret, ok := secrets[user.(string)]; ok {
-			c.JSON(http.StatusOK, gin.H{"user": user, "secret": secret})
+		userString, ok := user.(string)
+		if !ok {
+			c.Redirect(http.StatusSeeOther, "/admin/login")
+		}
+		if secret, ok := secrets[userString]; ok {
+			c.JSON(http.StatusOK, gin.H{"user": user.(string), "secret": secret})
 		} else {
-			c.JSON(http.StatusOK, gin.H{"user": user, "secret": secret})
+			c.JSON(http.StatusNotFound, gin.H{"user": "", "secret": ""})
 		}
 	})
 
