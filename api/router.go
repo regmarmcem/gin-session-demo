@@ -5,6 +5,9 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/regmarcmem/gin-session-demo/controller"
+	"github.com/regmarcmem/gin-session-demo/service"
+	"gorm.io/gorm"
 )
 
 var secrets = gin.H{
@@ -13,7 +16,10 @@ var secrets = gin.H{
 	"lena":   gin.H{"email": "lena@guapa.com", "phone": "523443"},
 }
 
-func NewRouter() *gin.Engine {
+func NewRouter(db *gorm.DB) *gin.Engine {
+	s := service.NewUserService(db)
+	c := controller.NewUserController(s)
+
 	r := gin.Default()
 
 	r.LoadHTMLGlob("static/*.html")
@@ -22,6 +28,9 @@ func NewRouter() *gin.Engine {
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
+
+	r.GET("/signup", c.GetSignup)
+	r.POST("/signup", c.PostSignup)
 
 	r.GET("/signin", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "signin.html", nil)
