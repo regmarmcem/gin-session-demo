@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/regmarcmem/gin-session-demo/service"
 )
@@ -20,13 +22,17 @@ func (ctr *UserController) GetSignup(c *gin.Context) {
 }
 
 func (ctr *UserController) PostSignup(c *gin.Context) {
-	email := c.PostForm("inputEmail")
-	password := c.PostForm("inputPassword")
+	email := c.PostForm("email")
+	password := c.PostForm("password")
 
 	user, err := ctr.s.Signup(email, password)
 	if err != nil {
+		log.Println(err)
 		c.Redirect(http.StatusSeeOther, "/signup")
-		return
 	}
-	c.HTML(http.StatusOK, "home.html", gin.H{"user": user})
+	session := sessions.Default(c)
+	session.Set("user", user)
+	session.Save()
+
+	c.Redirect(http.StatusSeeOther, "/home")
 }

@@ -16,11 +16,12 @@ var secrets = gin.H{
 	"lena":   gin.H{"email": "lena@guapa.com", "phone": "523443"},
 }
 
-func NewRouter(db *gorm.DB) *gin.Engine {
+func NewRouter(db *gorm.DB, store sessions.Store) *gin.Engine {
 	s := service.NewUserService(db)
 	c := controller.NewUserController(s)
 
 	r := gin.Default()
+	r.Use(sessions.Sessions("mysession", store))
 
 	r.LoadHTMLGlob("static/*.html")
 	r.Static("/assets", "./static/assets")
@@ -31,6 +32,11 @@ func NewRouter(db *gorm.DB) *gin.Engine {
 
 	r.GET("/signup", c.GetSignup)
 	r.POST("/signup", c.PostSignup)
+	r.GET("/home", func(c *gin.Context) {
+		session := sessions.Default(c)
+		user := session.Get("user")
+		c.HTML(http.StatusOK, "home.html", gin.H{"user": user})
+	})
 
 	r.GET("/signin", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "signin.html", nil)
