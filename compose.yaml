@@ -1,0 +1,13 @@
+services:
+  app:
+    depends_on:
+      - redis
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+  redis:
+    image: redis:6.0.20-alpine
+    ports:
+      - "6379:6379"
