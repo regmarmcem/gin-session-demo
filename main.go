@@ -33,6 +33,17 @@ func main() {
 	store.Options(sessions.Options{Path: "/", Domain: "localhost", MaxAge: 3600, Secure: false, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	r.Use(sessions.Sessions("mysession", store))
 
+	r.LoadHTMLGlob("static/*.html")
+	r.Static("/assets", "./static/assets")
+	r.Static("/dist", "./static/dist")
+	r.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", nil)
+	})
+
+	r.GET("/signin", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "signin.html", nil)
+	})
+
 	authorized := r.Group("/admin", gin.BasicAuth(gin.Accounts{
 		"foo":    "bar",
 		"austin": "1234",
@@ -40,7 +51,7 @@ func main() {
 		"manu":   "4321",
 	}))
 
-	authorized.GET("/login", func(c *gin.Context) {
+	authorized.GET("/signin", func(c *gin.Context) {
 		user := c.MustGet(gin.AuthUserKey).(string)
 		session := sessions.Default(c)
 		session.Set("user", user)
@@ -51,12 +62,12 @@ func main() {
 		session := sessions.Default(c)
 		user := session.Get("user")
 		if user == nil {
-			c.Redirect(http.StatusSeeOther, "/admin/login")
+			c.Redirect(http.StatusSeeOther, "/admin/signin")
 		}
 
 		userString, ok := user.(string)
 		if !ok {
-			c.Redirect(http.StatusSeeOther, "/admin/login")
+			c.Redirect(http.StatusSeeOther, "/admin/signin")
 		}
 		if secret, ok := secrets[userString]; ok {
 			c.JSON(http.StatusOK, gin.H{"user": user.(string), "secret": secret})

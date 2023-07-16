@@ -9,6 +9,7 @@ FROM gcr.io/distroless/static-debian11
 USER nonroot
 WORKDIR /app
 COPY --from=builder /go/src/app/main /go/src/app/.env ./
+COPY --from=builder /go/src/app/static ./static
 EXPOSE 8080
 CMD ["./main"]
 
