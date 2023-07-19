@@ -32,14 +32,14 @@ func NewRouter(db *gorm.DB, store sessions.Store) *gin.Engine {
 
 	r.GET("/signup", c.GetSignup)
 	r.POST("/signup", c.PostSignup)
+
+	r.GET("/signin", c.GetSignin)
+	r.POST("/signin", c.PostSignin)
+
 	r.GET("/home", func(c *gin.Context) {
 		session := sessions.Default(c)
 		user := session.Get("user")
 		c.HTML(http.StatusOK, "home.html", gin.H{"user": user})
-	})
-
-	r.GET("/signin", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "signin.html", nil)
 	})
 
 	authorized := r.Group("/admin", gin.BasicAuth(gin.Accounts{

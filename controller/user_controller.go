@@ -29,6 +29,28 @@ func (ctr *UserController) PostSignup(c *gin.Context) {
 	if err != nil {
 		log.Println(err)
 		c.Redirect(http.StatusSeeOther, "/signup")
+		return
+	}
+	session := sessions.Default(c)
+	session.Set("user", user)
+	session.Save()
+
+	c.Redirect(http.StatusSeeOther, "/home")
+}
+
+func (ctr *UserController) GetSignin(c *gin.Context) {
+	c.HTML(http.StatusOK, "signin.html", nil)
+}
+
+func (ctr *UserController) PostSignin(c *gin.Context) {
+	email := c.PostForm("email")
+	password := c.PostForm("password")
+
+	user, err := ctr.s.Signin(email, password)
+	if err != nil {
+		log.Println(err)
+		c.Redirect(http.StatusSeeOther, "/signin")
+		return
 	}
 	session := sessions.Default(c)
 	session.Set("user", user)
