@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,11 +10,13 @@ import (
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/joho/godotenv"
 	"github.com/regmarcmem/gin-session-demo/api"
+	"github.com/regmarcmem/gin-session-demo/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func main() {
+	gob.Register(model.User{})
 	err := godotenv.Load(".env")
 	if err != nil {
 		panic("Error loading .env file")

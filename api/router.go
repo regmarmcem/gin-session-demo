@@ -30,17 +30,21 @@ func NewRouter(db *gorm.DB, store sessions.Store) *gin.Engine {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
 
-	r.GET("/signup", c.GetSignup)
-	r.POST("/signup", c.PostSignup)
-
-	r.GET("/signin", c.GetSignin)
-	r.POST("/signin", c.PostSignin)
-
-	r.GET("/home", func(c *gin.Context) {
-		session := sessions.Default(c)
-		user := session.Get("user")
-		c.HTML(http.StatusOK, "home.html", gin.H{"user": user})
-	})
+	loginCheckGroup := r.Group("/", checkLogin())
+	{
+		loginCheckGroup.GET("/home", func(c *gin.Context) {
+			session := sessions.Default(c)
+			user := session.Get("user")
+			c.HTML(http.StatusOK, "home.html", gin.H{"user": user})
+		})
+	}
+	logoutCheckGroup := r.Group("/", checkLogout())
+	{
+		logoutCheckGroup.GET("/signup", c.GetSignup)
+		logoutCheckGroup.POST("/signup", c.PostSignup)
+		logoutCheckGroup.GET("/signin", c.GetSignin)
+		logoutCheckGroup.POST("/signin", c.PostSignin)
+	}
 
 	authorized := r.Group("/admin", gin.BasicAuth(gin.Accounts{
 		"foo":    "bar",
@@ -75,4 +79,30 @@ func NewRouter(db *gorm.DB, store sessions.Store) *gin.Engine {
 	})
 
 	return r
+}
+
+func checkLogin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		user := session.Get("user")
+		if user == nil {
+			c.Redirect(http.StatusFound, "/signin")
+			c.Abort()
+		} else {
+			c.Next()
+		}
+	}
+}
+
+func checkLogout() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		user := session.Get("user")
+		if user != nil {
+			c.Redirect(http.StatusFound, "/home")
+			c.Abort()
+		} else {
+			c.Next()
+		}
+	}
 }

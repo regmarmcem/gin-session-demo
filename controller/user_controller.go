@@ -33,8 +33,12 @@ func (ctr *UserController) PostSignup(c *gin.Context) {
 	}
 	session := sessions.Default(c)
 	session.Set("user", user)
-	session.Save()
-
+	err = session.Save()
+	if err != nil {
+		log.Println(err)
+		c.Redirect(http.StatusSeeOther, "/signup")
+		return
+	}
 	c.Redirect(http.StatusSeeOther, "/home")
 }
 
