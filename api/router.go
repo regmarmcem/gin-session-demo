@@ -10,12 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var secrets = gin.H{
-	"foo":    gin.H{"email": "foo@bar.com", "phone": "123433"},
-	"austin": gin.H{"email": "austin@example.com", "phone": "666"},
-	"lena":   gin.H{"email": "lena@guapa.com", "phone": "523443"},
-}
-
 func NewRouter(db *gorm.DB, store sessions.Store) *gin.Engine {
 	s := service.NewUserService(db)
 	c := controller.NewUserController(s)
@@ -30,62 +24,32 @@ func NewRouter(db *gorm.DB, store sessions.Store) *gin.Engine {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
 
-	loginCheckGroup := r.Group("/", checkLogin())
+	signinCheckGroup := r.Group("/", checkSignin())
 	{
-		loginCheckGroup.GET("/home", func(c *gin.Context) {
+		signinCheckGroup.GET("/home", func(c *gin.Context) {
 			session := sessions.Default(c)
 			user := session.Get("user")
 			c.HTML(http.StatusOK, "home.html", gin.H{"user": user})
 		})
+		signinCheckGroup.GET("/signout", c.GetSignout)
 	}
-	logoutCheckGroup := r.Group("/", checkLogout())
+	signoutCheckGroup := r.Group("/", checkSignout())
 	{
-		logoutCheckGroup.GET("/signup", c.GetSignup)
-		logoutCheckGroup.POST("/signup", c.PostSignup)
-		logoutCheckGroup.GET("/signin", c.GetSignin)
-		logoutCheckGroup.POST("/signin", c.PostSignin)
+		signoutCheckGroup.GET("/signup", c.GetSignup)
+		signoutCheckGroup.POST("/signup", c.PostSignup)
+		signoutCheckGroup.GET("/signin", c.GetSignin)
+		signoutCheckGroup.POST("/signin", c.PostSignin)
 	}
-
-	authorized := r.Group("/admin", gin.BasicAuth(gin.Accounts{
-		"foo":    "bar",
-		"austin": "1234",
-		"lena":   "hello2",
-		"manu":   "4321",
-	}))
-
-	authorized.GET("/signin", func(c *gin.Context) {
-		user := c.MustGet(gin.AuthUserKey).(string)
-		session := sessions.Default(c)
-		session.Set("user", user)
-		session.Save()
-	})
-
-	r.GET("/admin/secrets", func(c *gin.Context) {
-		session := sessions.Default(c)
-		user := session.Get("user")
-		if user == nil {
-			c.Redirect(http.StatusSeeOther, "/admin/signin")
-		}
-
-		userString, ok := user.(string)
-		if !ok {
-			c.Redirect(http.StatusSeeOther, "/admin/signin")
-		}
-		if secret, ok := secrets[userString]; ok {
-			c.JSON(http.StatusOK, gin.H{"user": user.(string), "secret": secret})
-		} else {
-			c.JSON(http.StatusNotFound, gin.H{"user": "", "secret": ""})
-		}
-	})
 
 	return r
 }
 
-func checkLogin() gin.HandlerFunc {
+func checkSignin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		user := session.Get("user")
-		if user == nil {
+		_, ok := user.(string)
+		if !ok {
 			c.Redirect(http.StatusFound, "/signin")
 			c.Abort()
 		} else {
@@ -94,11 +58,12 @@ func checkLogin() gin.HandlerFunc {
 	}
 }
 
-func checkLogout() gin.HandlerFunc {
+func checkSignout() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		user := session.Get("user")
-		if user != nil {
+		_, ok := user.(string)
+		if ok {
 			c.Redirect(http.StatusFound, "/home")
 			c.Abort()
 		} else {

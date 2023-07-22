@@ -32,7 +32,7 @@ func (ctr *UserController) PostSignup(c *gin.Context) {
 		return
 	}
 	session := sessions.Default(c)
-	session.Set("user", user)
+	session.Set("user", user.Email)
 	err = session.Save()
 	if err != nil {
 		log.Println(err)
@@ -57,8 +57,25 @@ func (ctr *UserController) PostSignin(c *gin.Context) {
 		return
 	}
 	session := sessions.Default(c)
-	session.Set("user", user)
-	session.Save()
+	session.Set("user", user.Email)
+	err = session.Save()
+	if err != nil {
+		log.Println(err)
+		c.Redirect(http.StatusSeeOther, "/signin")
+		return
+	}
 
 	c.Redirect(http.StatusSeeOther, "/home")
+}
+
+func (ctr *UserController) GetSignout(c *gin.Context) {
+	session := sessions.Default(c)
+	session.Delete("user")
+	err := session.Save()
+	if err != nil {
+		log.Println(err)
+		c.Redirect(http.StatusSeeOther, "/home")
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/signin")
 }
